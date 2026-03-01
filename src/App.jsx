@@ -867,9 +867,71 @@ function SessionDetail({ session, onBack, onUpdate }) {
   );
 }
 
+// ─── Login ──────────────────────────────────────────────────────────
+
+const EMAIL_DOMAIN = '@slo-cal.app';
+
+function LoginForm({ onLogin }) {
+  const [userId, setUserId] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    const { error: err } = await supabase.auth.signInWithPassword({
+      email: userId + EMAIL_DOMAIN,
+      password,
+    });
+    setLoading(false);
+    if (err) {
+      setError('IDまたはパスワードが違います');
+    } else {
+      onLogin();
+    }
+  };
+
+  return (
+    <div className="login-container">
+      <div className="login-card">
+        <h2>ログイン</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>ID</label>
+            <input
+              type="text"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+              autoComplete="username"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>パスワード</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </div>
+          {error && <div className="login-error">{error}</div>}
+          <button type="submit" className="btn btn-accent login-btn" disabled={loading}>
+            {loading ? 'ログイン中...' : 'ログイン'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main App ───────────────────────────────────────────────────────
 
 export default function App() {
+  const [authUser, setAuthUser] = useState(undefined);
   const [sessions, setSessions] = useState([]);
   const [currentId, setCurrentId] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -879,11 +941,22 @@ export default function App() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setAuthUser(session?.user ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!authUser) return;
     dbGetAll().then((data) => {
       setSessions(data.sort((a, b) => b.createdAt - a.createdAt));
       setLoaded(true);
     }).catch(() => setLoaded(true));
-  }, []);
+  }, [authUser]);
 
   const currentSession = useMemo(
     () => sessions.find((s) => s.id === currentId) || null,
@@ -941,6 +1014,20 @@ export default function App() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSessions([]);
+    setLoaded(false);
+  };
+
+  if (authUser === undefined) {
+    return <div style={{ textAlign: 'center', padding: 40, color: 'var(--textMuted)' }}>読み込み中...</div>;
+  }
+
+  if (!authUser) {
+    return <LoginForm onLogin={() => {}} />;
+  }
+
   if (!loaded) {
     return <div style={{ textAlign: 'center', padding: 40, color: 'var(--textMuted)' }}>読み込み中...</div>;
   }
@@ -960,6 +1047,7 @@ export default function App() {
       <div className="app-header">
         <h1>Lうみねこのなく頃に2</h1>
         <div className="subtitle">設定推測ツール</div>
+        <button className="logout-btn" onClick={handleLogout}>ログアウト</button>
       </div>
 
       <div className="action-bar">
