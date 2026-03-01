@@ -1,4 +1,12 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+// ─── Supabase Client ────────────────────────────────────────────────
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL || '',
+  import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+);
 
 // ─── Data Definitions ───────────────────────────────────────────────
 
@@ -171,57 +179,29 @@ const TABS = [
   { id: 'memo', label: 'メモ', isMemo: true },
 ];
 
-// ─── IndexedDB Helpers ──────────────────────────────────────────────
-
-const DB_NAME = 'umineko2-slot-tool';
-const DB_VERSION = 1;
-const STORE_NAME = 'sessions';
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
+// ─── Supabase DB Helpers ────────────────────────────────────────────
 
 async function dbGetAll() {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const req = store.getAll();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+  const { data, error } = await supabase
+    .from('sessions')
+    .select('data');
+  if (error) throw error;
+  return (data || []).map((row) => row.data);
 }
 
 async function dbPut(session) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const req = store.put(session);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
+  const { error } = await supabase
+    .from('sessions')
+    .upsert({ id: session.id, data: session }, { onConflict: 'id' });
+  if (error) throw error;
 }
 
 async function dbDelete(id) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const req = store.delete(id);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
+  const { error } = await supabase
+    .from('sessions')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
 }
 
 // ─── Estimation Engine ──────────────────────────────────────────────
