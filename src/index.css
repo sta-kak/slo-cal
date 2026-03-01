@@ -750,3 +750,57 @@ body {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Login */
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+}
+.login-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  width: 100%;
+  max-width: 340px;
+}
+.login-card h2 {
+  text-align: center;
+  font-size: 1.1rem;
+  margin-bottom: 20px;
+}
+.login-btn {
+  width: 100%;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 10px;
+}
+.login-error {
+  font-size: 0.8rem;
+  color: var(--red);
+  margin-bottom: 8px;
+}
+
+/* Logout */
+.logout-btn {
+  position: absolute;
+  top: 20px;
+  right: 12px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  color: var(--textMuted);
+  cursor: pointer;
+}
+.logout-btn:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+.app-header {
+  position: relative;
+}
