@@ -1,0 +1,28 @@
+{$DOMAIN:localhost} {
+	# ── CORS preflight ──────────────────────────────────────────────
+	@cors_preflight method OPTIONS
+	handle @cors_preflight {
+		header Access-Control-Allow-Origin  "{$CORS_ORIGIN:*}"
+		header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+		header Access-Control-Allow-Headers "apikey, Authorization, Content-Type, Accept, Prefer, x-client-info"
+		header Access-Control-Max-Age       "86400"
+		respond "" 204
+	}
+
+	# ── PostgREST proxy (/rest/v1/*) ───────────────────────────────
+	handle /rest/v1/* {
+		uri strip_prefix /rest/v1
+		header Access-Control-Allow-Origin  "{$CORS_ORIGIN:*}"
+		header Access-Control-Expose-Headers "Content-Range, X-Total-Count"
+		reverse_proxy postgrest:3000
+	}
+
+	# ── Health check ───────────────────────────────────────────────
+	handle /health {
+		respond "ok" 200
+	}
+
+	handle {
+		respond "Not Found" 404
+	}
+}
