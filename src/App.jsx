@@ -173,6 +173,7 @@ const DATA_GROUPS = [
 ];
 
 const TABS = [
+  { id: 'result', label: '設定期待度', isResult: true },
   { id: 'normal', label: '通常' },
   { id: 'bonus', label: 'ボーナス' },
   { id: 'art', label: 'ART' },
@@ -688,7 +689,7 @@ function SessionCard({ session, onClick, onDelete }) {
 
 function SessionDetail({ session, onBack, onUpdate }) {
   const [page, setPage] = useState('estimate');
-  const [activeTab, setActiveTab] = useState('normal');
+  const [activeTab, setActiveTab] = useState('result');
   const [saveStatus, setSaveStatus] = useState('idle');
   const saveTimer = useRef(null);
 
@@ -745,7 +746,11 @@ function SessionDetail({ session, onBack, onUpdate }) {
   const tabHasInput = useMemo(() => {
     const result = {};
     for (const tab of TABS) {
-      if (tab.isMemo) {
+      if (tab.isResult) {
+        const totalInputs = Object.values(session.counts || {}).reduce((a, b) => a + b, 0);
+        const totalDenoms = Object.values(session.denoms || {}).reduce((a, b) => a + b, 0);
+        result[tab.id] = totalInputs > 0 || totalDenoms > 0;
+      } else if (tab.isMemo) {
         result[tab.id] = !!(session.memo && session.memo.trim());
       } else {
         const groups = DATA_GROUPS.filter((g) => g.tab === tab.id);
@@ -809,40 +814,37 @@ function SessionDetail({ session, onBack, onUpdate }) {
             ))}
           </div>
 
-          <div className="two-col">
-            <div className="col-input">
-              {activeTab === 'memo' ? (
-                <textarea
-                  className="memo-area"
-                  value={session.memo || ''}
-                  onChange={(e) => handleMemoChange(e.target.value)}
-                  placeholder="自由にメモを入力..."
-                />
-              ) : (
-                <>
-                  {activeTab === 'normal' && (
-                    <DenomInput
-                      label="総ゲーム数"
-                      value={session.denoms?.total_games || 0}
-                      onChange={(v) => handleDenomChange('total_games', v)}
-                    />
-                  )}
-                  {tabGroups.map((group) => (
-                    <AccordionGroup
-                      key={group.id}
-                      group={group}
-                      counts={session.counts || {}}
-                      denoms={session.denoms || {}}
-                      onCountChange={handleCountChange}
-                      onDenomChange={handleDenomChange}
-                    />
-                  ))}
-                </>
-              )}
-            </div>
-            <div className="col-result">
+          <div className="tab-content">
+            {activeTab === 'result' ? (
               <ResultPanel session={session} />
-            </div>
+            ) : activeTab === 'memo' ? (
+              <textarea
+                className="memo-area"
+                value={session.memo || ''}
+                onChange={(e) => handleMemoChange(e.target.value)}
+                placeholder="自由にメモを入力..."
+              />
+            ) : (
+              <>
+                {activeTab === 'normal' && (
+                  <DenomInput
+                    label="総ゲーム数"
+                    value={session.denoms?.total_games || 0}
+                    onChange={(v) => handleDenomChange('total_games', v)}
+                  />
+                )}
+                {tabGroups.map((group) => (
+                  <AccordionGroup
+                    key={group.id}
+                    group={group}
+                    counts={session.counts || {}}
+                    denoms={session.denoms || {}}
+                    onCountChange={handleCountChange}
+                    onDenomChange={handleDenomChange}
+                  />
+                ))}
+              </>
+            )}
           </div>
         </div>
       )}

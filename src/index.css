@@ -351,27 +351,9 @@ body {
   background: var(--gold);
 }
 
-/* Two column layout */
-.two-col {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-@media (min-width: 768px) {
-  .two-col {
-    flex-direction: row;
-  }
-  .two-col .col-input {
-    flex: 1;
-    min-width: 0;
-  }
-  .two-col .col-result {
-    width: 320px;
-    flex-shrink: 0;
-    position: sticky;
-    top: 88px;
-    align-self: flex-start;
-  }
+/* Tab content */
+.tab-content {
+  margin-top: 4px;
 }
 
 /* Result panel */
@@ -713,12 +695,6 @@ body {
   color: var(--red);
 }
 
-/* Responsive mobile: result on top */
-@media (max-width: 767px) {
-  .two-col {
-    flex-direction: column-reverse;
-  }
-}
 
 /* Scrollable table container */
 .table-scroll {
