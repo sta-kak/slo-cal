@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ['claude/main']
+    branches: ['claude/slot-estimation-tool-dFYZr']
   workflow_dispatch:
 
 permissions:
