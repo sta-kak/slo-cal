@@ -58,6 +58,8 @@ const DATA_GROUPS = [
       { id: 'suika_a', label: 'スイカA', refProb: '1/161.4' },
       { id: 'suika_b', label: 'スイカB', refProb: '1/250.1' },
       { id: 'cherry', label: 'チェリー', refProb: null },
+      { id: 'reach_replay', label: 'リーチ目リプレイ', refProb: null },
+      { id: 'rare_bell', label: 'レアベル', refProb: null },
       { id: 'kakutei_a', label: '確定役A', refProb: '1/16384' },
       { id: 'kakutei_b', label: '確定役B', refProb: '1/8192' },
     ],
