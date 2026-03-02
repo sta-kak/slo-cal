@@ -679,31 +679,6 @@ body {
   border-color: var(--borderActive);
 }
 
-/* Help panel */
-.help-panel {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 16px;
-}
-.help-panel h3 {
-  font-size: 0.95rem;
-  margin-bottom: 10px;
-}
-.help-panel p {
-  font-size: 0.85rem;
-  color: var(--textSub);
-  margin-bottom: 8px;
-}
-.help-panel ol {
-  font-size: 0.85rem;
-  color: var(--textSub);
-  padding-left: 20px;
-}
-.help-panel li {
-  margin-bottom: 4px;
-}
 
 /* Detail element accordion */
 .detail-accordion {

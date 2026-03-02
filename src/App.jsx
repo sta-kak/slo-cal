@@ -634,23 +634,6 @@ function DeleteModal({ onConfirm, onCancel }) {
   );
 }
 
-function HelpPanel({ onClose }) {
-  return (
-    <div className="help-panel">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3>引き継ぎ方法</h3>
-        <button className="btn btn-small" onClick={onClose}>閉じる</button>
-      </div>
-      <p>別の端末にデータを移行するには、以下の手順に従ってください：</p>
-      <ol>
-        <li>現在の端末で「バックアップ保存」ボタンをタップし、JSONファイルをダウンロードします。</li>
-        <li>ダウンロードしたファイルを新しい端末に転送します（AirDrop、メール、クラウドストレージ等）。</li>
-        <li>新しい端末でこのツールを開き、「復元」ボタンをタップしてJSONファイルを選択します。</li>
-        <li>同じIDのセッションは上書き、新しいIDのセッションは追加されます。</li>
-      </ol>
-    </div>
-  );
-}
 
 function SessionCard({ session, onClick, onDelete }) {
   const result = useMemo(() => computePosterior(session), [session]);
@@ -936,9 +919,7 @@ export default function App() {
   const [currentId, setCurrentId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
-  const [showHelp, setShowHelp] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const fileInputRef = useRef(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -984,36 +965,6 @@ export default function App() {
     );
   }, [currentId]);
 
-  const handleBackup = () => {
-    const json = JSON.stringify(sessions, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `umineko2-backup-${todayStr()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleRestore = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      if (!Array.isArray(data)) throw new Error('Invalid format');
-      for (const session of data) {
-        if (!session.id) continue;
-        await dbPut(session);
-      }
-      const all = await dbGetAll();
-      setSessions(all.sort((a, b) => b.createdAt - a.createdAt));
-    } catch (err) {
-      alert('復元に失敗しました: ' + err.message);
-    }
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setSessions([]);
@@ -1052,19 +1003,7 @@ export default function App() {
 
       <div className="action-bar">
         <button className="btn btn-accent" onClick={() => setShowForm(true)}>新規作成</button>
-        <button className="btn" onClick={handleBackup}>バックアップ保存</button>
-        <button className="btn" onClick={() => fileInputRef.current?.click()}>復元</button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          style={{ display: 'none' }}
-          onChange={handleRestore}
-        />
-        <button className="btn" onClick={() => setShowHelp(!showHelp)}>引き継ぎ方法</button>
       </div>
-
-      {showHelp && <HelpPanel onClose={() => setShowHelp(false)} />}
 
       {sessions.length === 0 ? (
         <div className="empty-state">
