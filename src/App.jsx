@@ -302,8 +302,8 @@ function computePosterior(session) {
       denom = group.items.reduce((sum, it) => sum + (counts[it.id] || 0), 0);
     }
 
-    // Add start games to groups sharing total_games denominator
-    if (group.id === 'bonus_prob' || group.id === 'normal_bell') {
+    // Add start games only for bonus_prob (total games including prior play)
+    if (group.id === 'bonus_prob') {
       denom += startGames;
     }
 
