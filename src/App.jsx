@@ -149,12 +149,11 @@ const DATA_GROUPS = [
     id: 'art_koyaku',
     name: 'ART中小役',
     tab: 'art',
-    countOnly: true,
     denomSource: 'manual',
     denomKey: 'art_games',
     denomLabel: 'ART消化G数',
     items: [
-      { id: 'art_bell', label: '共通ベル' },
+      { id: 'art_bell', label: '共通ベル', probs: ['1/29.4','1/28.1','1/26.7','1/25.0','1/23.7','1/23.3'].map(p) },
       { id: 'art_hazure', label: 'ハズレ' },
     ],
   },
