@@ -157,7 +157,7 @@ const DATA_GROUPS = [
     denomKey: 'art_games',
     denomLabel: 'ART消化G数',
     items: [
-      { id: 'art_bell', label: '共通ベル', probs: ['1/29.4','1/28.1','1/26.7','1/25.0','1/23.7','1/23.3'].map(p) },
+      { id: 'art_bell', label: '共通ベル', estimated: true, probs: ['1/29.4','1/28.1','1/26.7','1/25.0','1/23.7','1/23.3'].map(p) },
     ],
   },
   {
@@ -549,7 +549,10 @@ function ProbabilityTable() {
                     return (
                       <Fragment key={item.id}>
                         <tr>
-                          <td>{item.label}{item.realProbs ? ' (履歴)' : ''}</td>
+                          <td>
+                            {item.label}{item.realProbs ? ' (履歴)' : ''}
+                            {item.estimated && <span className="estimated-badge">※推測値</span>}
+                          </td>
                           {SETTINGS.map((s, si) => (
                             <td key={s}>{formatProb(item.probs[si])}</td>
                           ))}
