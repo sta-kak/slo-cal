@@ -45,6 +45,19 @@ const DATA_GROUPS = [
     ],
   },
   {
+    id: 'normal_bell',
+    name: 'ベル揃い',
+    tab: 'normal',
+    denomSource: 'manual',
+    denomKey: 'total_games',
+    denomHidden: true,
+    denomLabel: '総ゲーム数',
+    items: [
+      { id: 'bell_total', label: 'ベル揃い合算', estimated: true,
+        probs: ['1/29.4','1/28.1','1/26.7','1/25.0','1/23.7','1/23.3'].map(p).map(cb => 1/9.0 + cb) },
+    ],
+  },
+  {
     id: 'normal_koyaku',
     name: '通常時小役',
     tab: 'normal',
@@ -253,8 +266,8 @@ function computePosterior(session) {
       denom = group.items.reduce((sum, it) => sum + (counts[it.id] || 0), 0);
     }
 
-    // Add start games to bonus_prob denominator
-    if (group.id === 'bonus_prob') {
+    // Add start games to groups sharing total_games denominator
+    if (group.id === 'bonus_prob' || group.id === 'normal_bell') {
       denom += startGames;
     }
 
