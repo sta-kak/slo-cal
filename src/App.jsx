@@ -316,9 +316,6 @@ function todayStr() {
 
 function formatProb(prob) {
   if (prob == null) return '—';
-  if (prob >= 0.01) {
-    return (prob * 100).toFixed(1) + '%';
-  }
   return '1/' + (1 / prob).toFixed(1);
 }
 
