@@ -210,6 +210,13 @@ function computePosterior(session) {
   const counts = session.counts || {};
   const denoms = session.denoms || {};
 
+  // Map start values to bonus_prob items
+  const startBonus = {
+    big_total: session.startBig || 0,
+    reg: session.startReg || 0,
+  };
+  const startGames = session.startGames || 0;
+
   // Start with uniform prior (log space)
   const logLikelihood = SETTINGS.map(() => 0);
   const filterMask = SETTINGS.map(() => true);
@@ -242,11 +249,21 @@ function computePosterior(session) {
       denom = group.items.reduce((sum, it) => sum + (counts[it.id] || 0), 0);
     }
 
+    // Add start games to bonus_prob denominator
+    if (group.id === 'bonus_prob') {
+      denom += startGames;
+    }
+
     if (denom <= 0) continue;
 
     for (const item of group.items) {
       if (item.denomPart || !item.probs) continue;
-      const k = counts[item.id] || 0;
+      let k = counts[item.id] || 0;
+
+      // Add start bonus counts
+      if (group.id === 'bonus_prob' && startBonus[item.id]) {
+        k += startBonus[item.id];
+      }
 
       const itemLogL = SETTINGS.map((_, si) => {
         const prob = item.probs[si];
