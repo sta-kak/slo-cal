@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 // ─── Supabase Client ────────────────────────────────────────────────
@@ -36,8 +36,12 @@ const DATA_GROUPS = [
     denomKey: 'total_games',
     denomLabel: '総ゲーム数',
     items: [
-      { id: 'big_total', label: 'BIG合算', probs: ['1/362.1','1/350.5','1/337.8','1/327.7','1/319.7','1/313.6'].map(p) },
-      { id: 'reg', label: 'REG', probs: ['1/397.2','1/390.1','1/381.0','1/374.5','1/366.1','1/360.1'].map(p) },
+      { id: 'big_total', label: 'BIG合算',
+        probs: ['1/385.2','1/373.7','1/361.0','1/351.7','1/344.1','1/338.3'].map(p),
+        realProbs: ['1/362.1','1/350.5','1/337.8','1/327.7','1/319.7','1/313.6'] },
+      { id: 'reg', label: 'REG',
+        probs: ['1/422.6','1/415.9','1/407.2','1/401.9','1/394.0','1/388.5'].map(p),
+        realProbs: ['1/397.2','1/390.1','1/381.0','1/374.5','1/366.1','1/360.1'] },
     ],
   },
   {
@@ -546,12 +550,22 @@ function ProbabilityTable() {
                   }
                   if (item.probs) {
                     return (
-                      <tr key={item.id}>
-                        <td>{item.label}</td>
-                        {SETTINGS.map((s, si) => (
-                          <td key={s}>{formatProb(item.probs[si])}</td>
-                        ))}
-                      </tr>
+                      <Fragment key={item.id}>
+                        <tr>
+                          <td>{item.label}{item.realProbs ? ' (履歴)' : ''}</td>
+                          {SETTINGS.map((s, si) => (
+                            <td key={s}>{formatProb(item.probs[si])}</td>
+                          ))}
+                        </tr>
+                        {item.realProbs && (
+                          <tr className="real-prob-row">
+                            <td>{item.label} (実確率)</td>
+                            {SETTINGS.map((s, si) => (
+                              <td key={s}>{item.realProbs[si]}</td>
+                            ))}
+                          </tr>
+                        )}
+                      </Fragment>
                     );
                   }
                   // countOnly item with refProb
