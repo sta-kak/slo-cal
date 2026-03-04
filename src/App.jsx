@@ -125,24 +125,15 @@ const DATA_GROUPS = [
     denomSource: 'auto',
     filterMode: true,
     items: [
-      { id: 'rc_normal', label: '通常/銀背景', denomPart: true },
+      { id: 'rc_normal', label: 'デフォルト背景', denomPart: true },
+      { id: 'rc_silver', label: '銀背景', estimated: true, pct: true,
+        probs: ['8.3%','8.3%','10.0%','10.0%','12.5%','12.5%'].map(pPct) },
+      { id: 'rc_gold_other', label: '金背景(その他)', estimated: true, pct: true,
+        probs: ['0%','0.8%','0.8%','1.0%','1.0%','1.3%'].map(pPct) },
       { id: 'rc_willard', label: '金:ウィラード(2以上)', filter: [0,1,1,1,1,1] },
       { id: 'rc_rion', label: '金:右代宮理御(2以上)', filter: [0,1,1,1,1,1] },
       { id: 'rc_erika', label: '金:ドレスヱリカ(4以上)', filter: [0,0,0,1,1,1] },
       { id: 'rc_gm', label: '金:GM戦人(5以上)', filter: [0,0,0,0,1,1] },
-    ],
-  },
-  {
-    id: 'rb_chara_prob',
-    name: 'RB中キャラ紹介 背景色',
-    tab: 'bonus',
-    denomSource: 'auto',
-    items: [
-      { id: 'rcp_default', label: 'デフォルト背景', denomPart: true },
-      { id: 'rcp_silver', label: '銀背景', estimated: true, pct: true,
-        probs: ['8.3%','8.3%','10.0%','10.0%','12.5%','12.5%'].map(pPct) },
-      { id: 'rcp_gold', label: '金背景', estimated: true, pct: true,
-        probs: ['0%','0.8%','0.8%','1.0%','1.0%','1.3%'].map(pPct) },
     ],
   },
   {
@@ -258,6 +249,7 @@ function computePosterior(session) {
     if (group.countOnly) continue;
 
     if (group.filterMode) {
+      // Process filter items
       for (const item of group.items) {
         if (!item.filter || disabled[item.id]) continue;
         const count = counts[item.id] || 0;
@@ -267,6 +259,28 @@ function computePosterior(session) {
               filterMask[si] = false;
             }
           });
+        }
+      }
+      // Also process probs items in filterMode groups (binomial estimation)
+      const hasProbItems = group.items.some(it => it.probs && !it.denomPart);
+      if (hasProbItems) {
+        const denom = group.items.reduce((sum, it) => sum + (counts[it.id] || 0), 0);
+        if (denom > 0) {
+          for (const item of group.items) {
+            if (item.denomPart || !item.probs || disabled[item.id]) continue;
+            const k = counts[item.id] || 0;
+            const itemLogL = SETTINGS.map((_, si) => {
+              const prob = item.probs[si];
+              if ((prob == null || prob <= 0) && k > 0) {
+                filterMask[si] = false;
+                return 0;
+              }
+              if (prob == null || prob <= 0 || prob >= 1) return 0;
+              return k * Math.log(prob) + (denom - k) * Math.log(1 - prob);
+            });
+            SETTINGS.forEach((_, si) => { logLikelihood[si] += itemLogL[si]; });
+            impacts.push({ item, group, k, n: denom, logL: itemLogL });
+          }
         }
       }
       continue;
@@ -449,7 +463,7 @@ function AccordionGroup({ group, counts, denoms, disabled, onCountChange, onDeno
             <DenomInput label="合計" auto={autoDenom} />
           )}
           {group.items.map((item) => {
-            const isEstTarget = !group.countOnly && (item.probs || item.filter);
+            const isEstTarget = !group.countOnly && item.probs && !item.filter;
             const isOff = disabled[item.id];
             return (
               <div className={'counter-row' + (isOff ? ' item-disabled' : '')} key={item.id}>
