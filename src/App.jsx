@@ -239,6 +239,7 @@ async function dbDelete(id) {
 function computePosterior(session) {
   const counts = session.counts || {};
   const denoms = session.denoms || {};
+  const disabled = session.disabled || {};
 
   // Map start values to bonus_prob items
   const startBonus = {
@@ -258,7 +259,7 @@ function computePosterior(session) {
 
     if (group.filterMode) {
       for (const item of group.items) {
-        if (!item.filter) continue;
+        if (!item.filter || disabled[item.id]) continue;
         const count = counts[item.id] || 0;
         if (count > 0) {
           SETTINGS.forEach((_, si) => {
@@ -287,7 +288,7 @@ function computePosterior(session) {
     if (denom <= 0) continue;
 
     for (const item of group.items) {
-      if (item.denomPart || !item.probs) continue;
+      if (item.denomPart || !item.probs || disabled[item.id]) continue;
       let k = counts[item.id] || 0;
 
       // Add start bonus counts
@@ -406,7 +407,7 @@ function DenomInput({ value, onChange, label, auto }) {
   );
 }
 
-function AccordionGroup({ group, counts, denoms, onCountChange, onDenomChange }) {
+function AccordionGroup({ group, counts, denoms, disabled, onCountChange, onDenomChange, onToggleItem }) {
   const [open, setOpen] = useState(false);
 
   const totalCount = group.items.reduce((sum, it) => sum + (counts[it.id] || 0), 0);
@@ -447,18 +448,31 @@ function AccordionGroup({ group, counts, denoms, onCountChange, onDenomChange })
           {group.denomSource === 'auto' && (
             <DenomInput label="合計" auto={autoDenom} />
           )}
-          {group.items.map((item) => (
-            <div className="counter-row" key={item.id}>
-              <div className="counter-label">
-                {item.label}
-                {item.filter && <span className="filter-tag"> [確定]</span>}
+          {group.items.map((item) => {
+            const isEstTarget = !group.countOnly && (item.probs || item.filter);
+            const isOff = disabled[item.id];
+            return (
+              <div className={'counter-row' + (isOff ? ' item-disabled' : '')} key={item.id}>
+                <div className="counter-label">
+                  {isEstTarget && (
+                    <button
+                      className={'toggle-btn' + (isOff ? ' off' : '')}
+                      onClick={() => onToggleItem(item.id)}
+                      title={isOff ? '推定OFF' : '推定ON'}
+                    >
+                      {isOff ? 'OFF' : 'ON'}
+                    </button>
+                  )}
+                  {item.label}
+                  {item.filter && <span className="filter-tag"> [確定]</span>}
+                </div>
+                <Counter
+                  value={counts[item.id] || 0}
+                  onChange={(v) => onCountChange(item.id, v)}
+                />
               </div>
-              <Counter
-                value={counts[item.id] || 0}
-                onChange={(v) => onCountChange(item.id, v)}
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -783,6 +797,20 @@ function SessionDetail({ session, onBack, onUpdate }) {
     });
   }, [save, onUpdate]);
 
+  const handleToggleItem = useCallback((itemId) => {
+    onUpdate((prev) => {
+      const disabled = { ...prev.disabled };
+      if (disabled[itemId]) {
+        delete disabled[itemId];
+      } else {
+        disabled[itemId] = true;
+      }
+      const updated = { ...prev, disabled };
+      save(updated);
+      return updated;
+    });
+  }, [save, onUpdate]);
+
   const handleMemoChange = useCallback((memo) => {
     onUpdate((prev) => {
       const updated = { ...prev, memo };
@@ -901,8 +929,10 @@ function SessionDetail({ session, onBack, onUpdate }) {
                     group={group}
                     counts={session.counts || {}}
                     denoms={session.denoms || {}}
+                    disabled={session.disabled || {}}
                     onCountChange={handleCountChange}
                     onDenomChange={handleDenomChange}
+                    onToggleItem={handleToggleItem}
                   />
                 ))}
               </>
