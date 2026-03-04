@@ -87,7 +87,7 @@ const DATA_GROUPS = [
     denomSource: 'auto',
     items: [
       { id: 'logo_small', label: 'ロゴ発光[小]', denomPart: true },
-      { id: 'logo_big', label: 'ロゴ発光[大]', probs: ['70.8%','75.0%','68.8%','75.0%','66.7%','75.0%'].map(pPct) },
+      { id: 'logo_big', label: 'ロゴ発光[大]', pct: true, probs: ['70.8%','75.0%','68.8%','75.0%','66.7%','75.0%'].map(pPct) },
     ],
   },
   // ─── ボーナスタブ ───
@@ -130,6 +130,19 @@ const DATA_GROUPS = [
       { id: 'rc_rion', label: '金:右代宮理御(2以上)', filter: [0,1,1,1,1,1] },
       { id: 'rc_erika', label: '金:ドレスヱリカ(4以上)', filter: [0,0,0,1,1,1] },
       { id: 'rc_gm', label: '金:GM戦人(5以上)', filter: [0,0,0,0,1,1] },
+    ],
+  },
+  {
+    id: 'rb_chara_prob',
+    name: 'RB中キャラ紹介 背景色',
+    tab: 'bonus',
+    denomSource: 'auto',
+    items: [
+      { id: 'rcp_default', label: 'デフォルト背景', denomPart: true },
+      { id: 'rcp_silver', label: '銀背景', estimated: true, pct: true,
+        probs: ['8.3%','8.3%','10.0%','10.0%','12.5%','12.5%'].map(pPct) },
+      { id: 'rcp_gold', label: '金背景', estimated: true, pct: true,
+        probs: ['0%','0.8%','0.8%','1.0%','1.0%','1.3%'].map(pPct) },
     ],
   },
   {
@@ -284,6 +297,11 @@ function computePosterior(session) {
 
       const itemLogL = SETTINGS.map((_, si) => {
         const prob = item.probs[si];
+        // prob=0 with observed count → impossible setting
+        if ((prob == null || prob <= 0) && k > 0) {
+          filterMask[si] = false;
+          return 0;
+        }
         if (prob == null || prob <= 0 || prob >= 1) return 0;
         return k * Math.log(prob) + (denom - k) * Math.log(1 - prob);
       });
@@ -327,8 +345,9 @@ function todayStr() {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
-function formatProb(prob) {
+function formatProb(prob, pct) {
   if (prob == null) return '—';
+  if (pct) return (prob * 100).toFixed(1) + '%';
   return '1/' + (1 / prob).toFixed(1);
 }
 
@@ -567,7 +586,7 @@ function ProbabilityTable() {
                             {item.estimated && <span className="estimated-badge">※推測値</span>}
                           </td>
                           {SETTINGS.map((s, si) => (
-                            <td key={s}>{formatProb(item.probs[si])}</td>
+                            <td key={s}>{formatProb(item.probs[si], item.pct)}</td>
                           ))}
                         </tr>
                         {item.realProbs && (
