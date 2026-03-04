@@ -124,11 +124,13 @@ const DATA_GROUPS = [
     tab: 'bonus',
     denomSource: 'auto',
     filterMode: true,
+    groupToggle: true,
     items: [
       { id: 'rc_normal', label: 'デフォルト背景', denomPart: true },
       { id: 'rc_silver', label: '銀背景', estimated: true, pct: true,
         probs: ['8.3%','8.3%','10.0%','10.0%','12.5%','12.5%'].map(pPct) },
-      { id: 'rc_gold_other', label: '金背景(その他)', estimated: true, pct: true,
+      { id: 'rc_gold_agg', label: '金背景合算', estimated: true, pct: true,
+        sumFrom: ['rc_willard', 'rc_rion', 'rc_erika', 'rc_gm'],
         probs: ['0%','0.8%','0.8%','1.0%','1.0%','1.3%'].map(pPct) },
       { id: 'rc_willard', label: '金:ウィラード(2以上)', filter: [0,1,1,1,1,1] },
       { id: 'rc_rion', label: '金:右代宮理御(2以上)', filter: [0,1,1,1,1,1] },
@@ -249,9 +251,9 @@ function computePosterior(session) {
     if (group.countOnly) continue;
 
     if (group.filterMode) {
-      // Process filter items
+      // Process filter items (always active)
       for (const item of group.items) {
-        if (!item.filter || disabled[item.id]) continue;
+        if (!item.filter) continue;
         const count = counts[item.id] || 0;
         if (count > 0) {
           SETTINGS.forEach((_, si) => {
@@ -261,14 +263,20 @@ function computePosterior(session) {
           });
         }
       }
-      // Also process probs items in filterMode groups (binomial estimation)
+      // Process probs items (respects groupToggle / per-item disabled)
+      const groupOff = group.groupToggle && disabled[group.id];
       const hasProbItems = group.items.some(it => it.probs && !it.denomPart);
-      if (hasProbItems) {
-        const denom = group.items.reduce((sum, it) => sum + (counts[it.id] || 0), 0);
+      if (hasProbItems && !groupOff) {
+        const denom = group.items.reduce((sum, it) => {
+          if (it.sumFrom) return sum; // virtual item, don't double-count
+          return sum + (counts[it.id] || 0);
+        }, 0);
         if (denom > 0) {
           for (const item of group.items) {
             if (item.denomPart || !item.probs || disabled[item.id]) continue;
-            const k = counts[item.id] || 0;
+            const k = item.sumFrom
+              ? item.sumFrom.reduce((s, id) => s + (counts[id] || 0), 0)
+              : (counts[item.id] || 0);
             const itemLogL = SETTINGS.map((_, si) => {
               const prob = item.probs[si];
               if ((prob == null || prob <= 0) && k > 0) {
@@ -424,27 +432,39 @@ function DenomInput({ value, onChange, label, auto }) {
 function AccordionGroup({ group, counts, denoms, disabled, onCountChange, onDenomChange, onToggleItem }) {
   const [open, setOpen] = useState(false);
 
-  const totalCount = group.items.reduce((sum, it) => sum + (counts[it.id] || 0), 0);
+  const totalCount = group.items.reduce((sum, it) => it.sumFrom ? sum : sum + (counts[it.id] || 0), 0);
   const hasInput = totalCount > 0 || (group.denomKey && (denoms[group.denomKey] || 0) > 0);
 
   const autoDenom = group.denomSource === 'auto'
-    ? group.items.reduce((sum, it) => sum + (counts[it.id] || 0), 0)
+    ? group.items.reduce((sum, it) => it.sumFrom ? sum : sum + (counts[it.id] || 0), 0)
     : null;
 
   const modeLabel = group.countOnly ? 'COUNT' : group.filterMode ? 'FILTER' : null;
+  const groupOff = group.groupToggle && disabled[group.id];
 
   return (
     <div className={'accordion' + (hasInput ? ' has-input' : '')}>
-      <button className="accordion-header" onClick={() => setOpen(!open)}>
-        <span className={'accordion-arrow' + (open ? ' open' : '')}>&#9654;</span>
-        <span className="accordion-title">{group.name}</span>
-        {totalCount > 0 && <span className="accordion-badge badge-count">{totalCount}</span>}
-        {modeLabel && (
-          <span className={'accordion-badge ' + (group.filterMode ? 'badge-filter' : 'badge-countonly')}>
-            {modeLabel}
-          </span>
+      <div className="accordion-header">
+        <button className="accordion-header-btn" onClick={() => setOpen(!open)}>
+          <span className={'accordion-arrow' + (open ? ' open' : '')}>&#9654;</span>
+          <span className="accordion-title">{group.name}</span>
+          {totalCount > 0 && <span className="accordion-badge badge-count">{totalCount}</span>}
+          {modeLabel && (
+            <span className={'accordion-badge ' + (group.filterMode ? 'badge-filter' : 'badge-countonly')}>
+              {modeLabel}
+            </span>
+          )}
+        </button>
+        {group.groupToggle && (
+          <button
+            className={'toggle-btn group-toggle' + (groupOff ? ' off' : '')}
+            onClick={(e) => { e.stopPropagation(); onToggleItem(group.id); }}
+            title={groupOff ? '出現率推定OFF' : '出現率推定ON'}
+          >
+            {groupOff ? '推定OFF' : '推定ON'}
+          </button>
         )}
-      </button>
+      </div>
       {open && (
         <div className="accordion-body">
           {group.denomSource === 'manual' && !group.denomHidden && (
@@ -463,7 +483,8 @@ function AccordionGroup({ group, counts, denoms, disabled, onCountChange, onDeno
             <DenomInput label="合計" auto={autoDenom} />
           )}
           {group.items.map((item) => {
-            const isEstTarget = !group.countOnly && item.probs && !item.filter;
+            if (item.sumFrom) return null; // virtual aggregate, no input
+            const isEstTarget = !group.countOnly && !group.groupToggle && item.probs && !item.filter;
             const isOff = disabled[item.id];
             return (
               <div className={'counter-row' + (isOff ? ' item-disabled' : '')} key={item.id}>

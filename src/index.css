@@ -426,19 +426,31 @@ body {
 .accordion-header {
   display: flex;
   align-items: center;
+  background: var(--card);
+  padding-right: 12px;
+}
+.accordion-header-btn {
+  display: flex;
+  align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  background: var(--card);
+  background: none;
   border: none;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   font-family: inherit;
   font-size: 0.85rem;
   cursor: pointer;
   text-align: left;
   color: var(--text);
 }
-.accordion-header:hover {
+.accordion-header-btn:hover {
   background: #fafaf7;
+}
+.group-toggle {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  padding: 2px 8px;
 }
 .accordion-arrow {
   transition: transform 0.2s;
